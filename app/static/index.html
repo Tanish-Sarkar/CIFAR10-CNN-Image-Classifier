@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>CIFAR10 Image Classifier</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+
+<div class="card">
+    <h1>CIFAR10 Image Classifier</h1>
+    <p class="subtitle">
+        Upload any image (car, cat, truck, etc.) and get a prediction from the trained CNN.
+    </p>
+
+    <div class="row">
+        <!-- LEFT PANEL: Upload + Preview -->
+        <div class="col">
+            <div class="upload-box">
+                <div class="pill">
+                    📁 Choose an image (PNG/JPG)
+                </div>
+
+                <form id="upload-form">
+                    <input id="file-input" type="file" accept="image/*" />
+                    <button id="submit-btn" class="btn" type="submit">
+                        Upload & Predict
+                    </button>
+                </form>
+                <div id="status"></div>
+            </div>
+
+            <img id="preview" />
+        </div>
+
+        <!-- RIGHT PANEL: Results -->
+        <div class="col">
+            <div class="pill">🔮 Model: simple_cnn (PyTorch)</div>
+
+            <div class="result-main">
+                <div class="pred-label" id="pred-label">No prediction yet.</div>
+                <div class="confidence" id="confidence"></div>
+                <div class="filename" id="filename"></div>
+            </div>
+
+            <table id="probs-table" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>Class</th>
+                        <th>Probability</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="probs-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JS -->
+<script>
+const form = document.getElementById("upload-form");
+const fileInput = document.getElementById("file-input");
+const preview = document.getElementById("preview");
+const submitBtn = document.getElementById("submit-btn");
+const statusEl = document.getElementById("status");
+
+const predLabelEl = document.getElementById("pred-label");
+const confidenceEl = document.getElementById("confidence");
+const filenameEl = document.getElementById("filename");
+const probsTable = document.getElementById("probs-table");
+const probsBody = document.getElementById("probs-body");
+
+fileInput.onchange = () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+};
+
+form.onsubmit = async e => {
+    e.preventDefault();
+    const file = fileInput.files[0];
+    if (!file) {
+        alert("Please select an image");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    submitBtn.disabled = true;
+    statusEl.textContent = "Predicting...";
+    predLabelEl.textContent = "Analyzing...";
+    confidenceEl.textContent = "";
+    filenameEl.textContent = "";
+    probsTable.style.display = "none";
+
+    try {
+        const res = await fetch("/predict-image", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+
+        predLabelEl.textContent = "Predicted: " + data.predicted_class;
+        confidenceEl.textContent = "Confidence: " + (data.confidence * 100).toFixed(2) + "%";
+        filenameEl.textContent = "File: " + data.filename;
+
+        // Fill probability table
+        probsBody.innerHTML = "";
+        const probs = Object.entries(data.all_probabilities).sort((a, b) => b[1] - a[1]);
+
+        probs.forEach(([label, p]) => {
+            const row = `
+              <tr>
+                  <td>${label}</td>
+                  <td>${(p * 100).toFixed(2)}%</td>
+                  <td>
+                      <div class="prob-bar-bg">
+                          <div class="prob-bar-fill" style="width:${p * 100}%"></div>
+                      </div>
+                  </td>
+              </tr>
+            `;
+            probsBody.innerHTML += row;
+        });
+
+        probsTable.style.display = "table";
+        statusEl.textContent = "";
+    } catch (err) {
+        statusEl.textContent = "Error: " + err.message;
+    }
+
+    submitBtn.disabled = false;
+};
+</script>
+
+</body>
+</html>

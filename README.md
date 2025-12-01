@@ -1,5 +1,4 @@
 
-````md
 # CIFAR10 CNN Image Classifier 🧠📸
 
 An end-to-end **PyTorch** project that trains a **Convolutional Neural Network (CNN)** on the CIFAR-10 dataset and serves it through a **FastAPI** web app where users can upload an image and get a prediction.
@@ -282,5 +281,4 @@ You can also explore and test the API via the automatically generated docs:
 * [ ] Dockerize the API for easier deployment
 * [ ] Deploy to a cloud platform (Render / Railway / Fly.io / Hugging Face Spaces)
 
----
 
